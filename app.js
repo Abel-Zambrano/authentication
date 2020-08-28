@@ -11,6 +11,15 @@ mongoose.connect('mongodb://localhost/auth_demo', { useNewUrlParser: true, useUn
 app.use(bodyParser.urlencoded({extended: true}));
 app.set('view engine', 'ejs');
 
+const isLoggedIn = (req, res, next) => {
+    if(req.isAuthenticated()) {
+        return next();
+    } else {
+        res.redirect('/login');
+    }
+}
+
+
 
 // PASSPORT ==================================================================
 
@@ -22,6 +31,7 @@ app.use(require('express-session')({
 app.use(passport.initialize());
 app.use(passport.session());
 
+passport.use(new LocalStrategy(User.authenticate()));
 passport.serializeUser(User.serializeUser()); // Encoding session
 passport.deserializeUser(User.deserializeUser()); // Decoding session
 
@@ -31,7 +41,7 @@ app.get('/', (req, res) => {
     res.render('home');
 });
 
-app.get('/secret', (req, res) => {
+app.get('/secret', isLoggedIn, (req, res) => {
     res.render('secret')
 });
 
@@ -53,6 +63,21 @@ app.post('/register', (req, res) => {
             });
         }
     });
+});
+
+app.get('/login', (req, res) => {
+    res.render('login');
+})
+
+app.post('/login', passport.authenticate('local', {
+    successRedirect: '/secret',
+    failureRedirect: '/login'
+}), (req, res) => {
+});
+
+app.get('/logout', (req, res) => {
+    req.logout();
+    res.redirect('/')
 });
 
 app.listen(3000, () => {
